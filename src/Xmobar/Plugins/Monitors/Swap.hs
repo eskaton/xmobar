@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Plugins.Monitors.Swap
@@ -24,7 +25,11 @@ swapConfig = mkMConfig
         ["usedratio", "total", "used", "free"] -- available replacements
 
 fileMEM :: IO B.ByteString
+#ifdef freebsd_HOST_OS
+fileMEM = B.readFile "/compat/linux/proc/meminfo"
+#else
 fileMEM = B.readFile "/proc/meminfo"
+#endif
 
 parseMEM :: IO [Float]
 parseMEM =

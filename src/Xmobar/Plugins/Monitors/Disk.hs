@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Plugins.Monitors.Disk
@@ -24,7 +25,11 @@ import Control.Monad (zipWithM)
 import qualified Data.ByteString.Lazy.Char8 as B
 import Data.List (isPrefixOf, find)
 import Data.Maybe (catMaybes)
+#ifdef freebsd_HOST_OS
+import System.Directory (canonicalizePath, doesDirectoryExist)
+#else
 import System.Directory (canonicalizePath, doesFileExist)
+#endif
 import System.Console.GetOpt
 
 data DiskIOOpts = DiskIOOpts
@@ -95,6 +100,24 @@ type DevName = String
 type Path = String
 type DevDataRef = IORef [(DevName, [Float])]
 
+#ifdef freebsd_HOST_OS
+mountedDevices :: [String] -> IO [(DevName, Path)]
+mountedDevices req = do
+  s <- B.readFile "/compat/linux/proc/mtab"
+  parse `fmap` mapM mbcanon (devs s)
+  where
+    mbcanon (d, p) = doesDirectoryExist p >>= \e ->
+                     if e
+                        then Just `fmap` canon (d,p)
+                        else return Nothing
+    canon (d, p) = do {p' <- canonicalizePath p; return (d, p')}
+    devs = map (firstTwo . B.words) . B.lines
+    parse = map undev . filter isReq . catMaybes
+    firstTwo (a:b:_:_:_:_) = (B.unpack a, B.unpack b)
+    firstTwo _ = ("", "")
+    isReq (d, p) = p `elem` req || drop 5 d `elem` req
+    undev (d, f) = (drop 5 d, f)
+#else
 mountedDevices :: [String] -> IO [(DevName, Path)]
 mountedDevices req = do
   s <- B.readFile "/etc/mtab"
@@ -112,6 +135,7 @@ mountedDevices req = do
     isDev (d, _) = "/dev/" `isPrefixOf` d
     isReq (d, p) = p `elem` req || drop 5 d `elem` req
     undev (d, f) = (drop 5 d, f)
+#endif
 
 diskDevices :: [String] -> IO [(DevName, Path)]
 diskDevices req = do

@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Plugins.Monitors.Mem
@@ -56,7 +57,11 @@ memConfig = mkMConfig
         "total", "free", "buffer", "cache", "available", "used"] -- available replacements
 
 fileMEM :: IO String
+#ifdef freebsd_HOST_OS
+fileMEM = readFile "/compat/linux/proc/meminfo"
+#else
 fileMEM = readFile "/proc/meminfo"
+#endif
 
 parseMEM :: IO [Float]
 parseMEM =

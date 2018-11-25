@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Plugins.Monitors.Cpu
@@ -49,7 +50,11 @@ cpuConfig = mkMConfig
 type CpuDataRef = IORef [Int]
 
 cpuData :: IO [Int]
+#ifdef freebsd_HOST_OS
+cpuData = cpuParser `fmap` B.readFile "/compat/linux/proc/stat"
+#else
 cpuData = cpuParser `fmap` B.readFile "/proc/stat"
+#endif
 
 cpuParser :: B.ByteString -> [Int]
 cpuParser = map (read . B.unpack) . tail . B.words . head . B.lines
