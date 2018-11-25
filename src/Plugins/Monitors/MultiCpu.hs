@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 -----------------------------------------------------------------------------
 -- |
 -- Module      :  Plugins.Monitors.MultiCpu
@@ -65,7 +66,11 @@ multiCpuConfig =
 type CpuDataRef = IORef [[Int]]
 
 cpuData :: IO [[Int]]
+#ifdef freebsd_HOST_OS
+cpuData = parse `fmap` B.readFile "/compat/linux/proc/stat"
+#else
 cpuData = parse `fmap` B.readFile "/proc/stat"
+#endif
   where parse = map parseList . cpuLists
         cpuLists = takeWhile isCpu . map B.words . B.lines
         isCpu (w:_) = "cpu" `isPrefixOf` B.unpack w

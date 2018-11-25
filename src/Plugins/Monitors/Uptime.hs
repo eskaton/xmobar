@@ -1,3 +1,4 @@
+{-# LANGUAGE CPP #-}
 ------------------------------------------------------------------------------
 -- |
 -- Module      : Plugins.Monitors.Uptime
@@ -27,7 +28,11 @@ uptimeConfig = mkMConfig "Up <days>d <hours>h <minutes>m"
 
 readUptime :: IO Float
 readUptime =
+#ifdef freebsd_HOST_OS
+  fmap (read . B.unpack . head . B.words) (B.readFile "/compat/linux/proc/uptime")
+#else
   fmap (read . B.unpack . head . B.words) (B.readFile "/proc/uptime")
+#endif
 
 secsPerDay :: Integer
 secsPerDay = 24 * 3600
